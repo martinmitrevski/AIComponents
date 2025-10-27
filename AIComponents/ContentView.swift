@@ -18,31 +18,188 @@ struct ContentView: View {
     @State var channelController: ChatChannelController?
     
     @State var showMessageList = false
+    @State private var isSplitOpen = false
+    @State private var dragOffset: CGFloat = 0
+    @State private var composerHeight: CGFloat = 0
+    @State private var isSplitDragActive = false
+
+    private let splitWidthRatio: CGFloat = 0.82
+    private let edgeActivationWidth: CGFloat = 32
         
     var body: some View {
         NavigationStack {
-            VStack {
-                if showMessageList, let channelController {
-                    ConversationView(viewModel: ChatChannelViewModel(channelController: channelController))
-                } else {
-                    Spacer()
-                }
-                ComposerView(text: $text) { messageData in
-                    if channelController == nil {
-                        channelController = try? chatClient.channelController(
-                            createChannelWithId: ChannelId(type: .messaging, id: UUID().uuidString)
-                        )
-                        channelController?.synchronize { _ in
-                            channelController?.createNewMessage(text: messageData.text)
-                            showMessageList = true
-                        }
-                    } else {
-                        channelController?.createNewMessage(text: messageData.text)
+            GeometryReader { geometry in
+                let splitWidth = geometry.size.width * splitWidthRatio
+                let clampedDrag = max(-splitWidth, min(splitWidth, dragOffset))
+                let mainOffset = isSplitOpen ? (splitWidth + min(0, clampedDrag)) : max(0, clampedDrag)
+                let panelOffset = isSplitOpen ? min(0, clampedDrag) : (-splitWidth + max(0, clampedDrag))
+                let availableHeight = max(0, geometry.size.height - composerHeight)
+                
+                ZStack(alignment: .leading) {
+                    mainConversation(
+                        splitWidth: splitWidth,
+                        availableHeight: availableHeight
+                    )
+                        .frame(width: geometry.size.width, height: geometry.size.height)
+                        .offset(x: mainOffset)
+                    
+                    if isSplitOpen {
+                        Color.black.opacity(0.25)
+                            .ignoresSafeArea()
+                            .onTapGesture {
+                                closeSplitView()
+                            }
+                            .gesture(
+                                splitDragGesture(
+                                    splitWidth: splitWidth,
+                                    availableHeight: nil
+                                )
+                            )
                     }
-                    self.text = ""
+                    
+                    if isSplitOpen || clampedDrag > 0 {
+                        SplitSidebarView(onChannelSelected: handleChannelSelection)
+                            .frame(width: splitWidth)
+                            .offset(x: panelOffset)
+                            .transition(.move(edge: .leading))
+                            .shadow(color: .black.opacity(0.15), radius: 12, x: 4, y: 0)
+                            .background(Color.white)
+                    }
                 }
+                .animation(.spring(response: 0.28, dampingFraction: 0.85), value: isSplitOpen)
+                .animation(.spring(response: 0.28, dampingFraction: 0.85), value: dragOffset)
             }
         }
+    }
+    
+    private func mainConversation(splitWidth: CGFloat, availableHeight: CGFloat) -> some View {
+        VStack(spacing: 0) {
+            ZStack(alignment: .leading) {
+                Color.clear
+                    .allowsHitTesting(false)
+                
+                if showMessageList, let channelController {
+                    ConversationView(viewModel: ChatChannelViewModel(channelController: channelController))
+                        .id(channelController.cid)
+                } else {
+                    Color.clear
+                }
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .contentShape(Rectangle())
+            .highPriorityGesture(
+                splitDragGesture(
+                    splitWidth: splitWidth,
+                    availableHeight: availableHeight
+                ),
+                including: .gesture
+            )
+            
+            ComposerView(text: $text) { messageData in
+                if channelController == nil {
+                    channelController = try? chatClient.channelController(
+                        createChannelWithId: ChannelId(type: .messaging, id: UUID().uuidString)
+                    )
+                    channelController?.synchronize { _ in
+                        channelController?.createNewMessage(text: messageData.text)
+                        showMessageList = true
+                    }
+                } else {
+                    channelController?.createNewMessage(text: messageData.text)
+                }
+                self.text = ""
+            }
+            .background(
+                GeometryReader { proxy in
+                    Color.clear.preference(key: ComposerHeightPreferenceKey.self, value: proxy.size.height)
+                }
+            )
+            .onPreferenceChange(ComposerHeightPreferenceKey.self) { newHeight in
+                composerHeight = newHeight
+            }
+        }
+    }
+    
+    private func splitDragGesture(splitWidth: CGFloat, availableHeight: CGFloat?) -> some Gesture {
+        DragGesture(minimumDistance: 8, coordinateSpace: .local)
+            .onChanged { value in
+                let horizontal = value.translation.width
+                let vertical = value.translation.height
+                
+                if !isSplitOpen && !isSplitDragActive && value.startLocation.x > edgeActivationWidth {
+                    return
+                }
+                
+                if let availableHeight, value.startLocation.y > availableHeight {
+                    return
+                }
+                if abs(horizontal) < abs(vertical) {
+                    return
+                }
+                
+                if !isSplitDragActive {
+                    isSplitDragActive = true
+                }
+                
+                if isSplitOpen {
+                    dragOffset = min(0, horizontal)
+                } else if horizontal > 0 {
+                    dragOffset = horizontal
+                }
+            }
+            .onEnded { value in
+                let horizontal = value.translation.width
+                let vertical = value.translation.height
+                
+                defer {
+                    dragOffset = 0
+                    isSplitDragActive = false
+                }
+                
+                if !isSplitOpen && value.startLocation.x > edgeActivationWidth {
+                    return
+                }
+                if let availableHeight, value.startLocation.y > availableHeight {
+                    return
+                }
+                if abs(horizontal) < abs(vertical) {
+                    return
+                }
+                if isSplitOpen {
+                    if horizontal < -splitWidth * 0.2 {
+                        closeSplitView(animated: true)
+                    }
+                } else if horizontal > splitWidth * 0.2 {
+                    openSplitView()
+                }
+            }
+    }
+    
+    private func openSplitView() {
+        withAnimation(.spring(response: 0.28, dampingFraction: 0.85)) {
+            isSplitOpen = true
+            dragOffset = 0
+        }
+    }
+    
+    private func closeSplitView(animated: Bool = false) {
+        let animation: Animation? = animated ? .spring(response: 0.28, dampingFraction: 0.85) : nil
+        if let animation {
+            withAnimation(animation) {
+                isSplitOpen = false
+            }
+        } else {
+            isSplitOpen = false
+        }
+        dragOffset = 0
+    }
+
+    private func handleChannelSelection(_ channel: ChatChannel) {
+        let controller = chatClient.channelController(for: channel.cid)
+        channelController = controller
+        showMessageList = true
+        controller.synchronize { _ in }
+        closeSplitView(animated: true)
     }
 }
 
@@ -88,5 +245,65 @@ class AIComponentsViewFactory: ViewFactory {
         isInThread: Bool
     ) -> some View {
         Color.clear
+    }
+    
+    func makeMessageReadIndicatorView(channel: ChatChannel, message: ChatMessage) -> some View {
+        EmptyView()
+    }
+}
+
+private struct SplitSidebarView: View {
+    
+    let onChannelSelected: (ChatChannel) -> Void
+    @StateObject private var viewModel = ChatChannelListViewModel()
+    
+    var body: some View {
+        VStack {
+            ConversationListView(
+                viewModel: viewModel,
+                onChannelSelected: onChannelSelected
+            )
+        }
+        .padding(.top, 40)
+    }
+}
+
+struct ConversationListView: View {
+    
+    @ObservedObject var viewModel: ChatChannelListViewModel
+    var onChannelSelected: (ChatChannel) -> Void
+    
+    var body: some View {
+        ScrollView {
+            LazyVStack {
+                ForEach(viewModel.channels) { channel in
+                    HStack {
+                        Text(channel.name ?? channel.id)
+                            .multilineTextAlignment(.leading)
+                            .lineLimit(1)
+                        Spacer()
+                    }
+                    .padding(.horizontal)
+                    .padding(.vertical, 4)
+                    .contentShape(Rectangle())
+                    .onTapGesture {
+                        onChannelSelected(channel)
+                    }
+                    .onAppear {
+                        if let index = viewModel.channels.firstIndex(of: channel) {
+                            viewModel.checkForChannels(index: index)
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+private struct ComposerHeightPreferenceKey: PreferenceKey {
+    static var defaultValue: CGFloat = 0
+    
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value = nextValue()
     }
 }

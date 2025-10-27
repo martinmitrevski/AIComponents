@@ -24,7 +24,14 @@ struct AIComponentsApp: App {
     }()
     
     init() {
-        _streamChat = State(initialValue: StreamChat(chatClient: chatClient))
+        let messageListConfig = MessageListConfig(messageDisplayOptions: .init(
+            showAvatars: false,
+            showAvatarsInGroups: false,
+            showMessageDate: false,
+            showAuthorName: false
+        ))
+        let utils = Utils(messageListConfig: messageListConfig)
+        _streamChat = State(initialValue: StreamChat(chatClient: chatClient, utils: utils))
         chatClient.connectUser(
             userInfo: UserInfo(
                 id: "anakin_skywalker",
