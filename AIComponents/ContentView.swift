@@ -83,6 +83,12 @@ struct ContentView: View {
                         .id(channelController.cid)
                 } else {
                     Color.clear
+                        .onChange(of: text) { oldValue, newValue in
+                            // already create the channel for faster reply.
+                            if text.count > 10 {
+                                setupChannel()
+                            }
+                        }
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -99,21 +105,16 @@ struct ContentView: View {
                 let attachments = messageData.attachments.compactMap { url in
                     try? AnyAttachmentPayload(localFileURL: url, attachmentType: .image)
                 }
-                let id = UUID().uuidString
-                let channelId = ChannelId(type: .messaging, id: id)
-                if channelController == nil {
-                    channelController = try? chatClient.channelController(
-                        createChannelWithId: channelId
-                    )
-                    channelController?.synchronize { _ in
-                        Task { @MainActor in
-                            try await AgentService.shared.setupAgent(channelId: id)
-                            channelController?.createNewMessage(text: messageData.text, attachments: attachments)
-                            showMessageList = true
+                setupChannel {
+                    channelController?.createNewMessage(text: messageData.text, attachments: attachments)
+                    showMessageList = true
+                    
+                    if channelController?.channel?.name == nil {
+                        Task {
+                            let summary = try await AgentService.shared.summarize(text: messageData.text, platform: "openai") //TODO: fix this
+                            channelController?.updateChannel(name: summary, imageURL: nil, team: nil)
                         }
                     }
-                } else {
-                    channelController?.createNewMessage(text: messageData.text, attachments: attachments)
                 }
                 self.text = ""
             }
@@ -125,6 +126,24 @@ struct ContentView: View {
             .onPreferenceChange(ComposerHeightPreferenceKey.self) { newHeight in
                 composerHeight = newHeight
             }
+        }
+    }
+    
+    private func setupChannel(completion: (() -> ())? = nil) {
+        if channelController == nil {
+            let id = UUID().uuidString
+            let channelId = ChannelId(type: .messaging, id: id)
+            channelController = try? chatClient.channelController(
+                createChannelWithId: channelId
+            )
+            channelController?.synchronize { _ in
+                Task { @MainActor in
+                    try await AgentService.shared.setupAgent(channelId: id)
+                    completion?()
+                }
+            }
+        } else {
+            completion?()
         }
     }
     

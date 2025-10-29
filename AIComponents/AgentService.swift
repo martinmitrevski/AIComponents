@@ -11,8 +11,9 @@ class AgentService {
     static let shared = AgentService()
     
     private let baseURL = "http://localhost:3000"
-
+    
     private let jsonEncoder = JSONEncoder()
+    private let jsonDecoder = JSONDecoder()
     
     private let urlSession = URLSession.shared
     
@@ -30,15 +31,29 @@ class AgentService {
         )
     }
     
+    func summarize(text: String, platform: String) async throws -> String {
+        let data = try await executePostRequestWithResponse(
+            body: AgentSummaryRequest(text: text, platform: platform),
+            endpoint: "summarize"
+        )
+
+        let response = try jsonDecoder.decode(AgentSummaryResponse.self, from: data)
+        return response.summary
+    }
+    
     private func executePostRequest<RequestBody: Encodable>(body: RequestBody, endpoint: String) async throws {
+        _ = try await executePostRequestWithResponse(body: body, endpoint: endpoint)
+    }
+    
+    private func executePostRequestWithResponse<RequestBody: Encodable>(body: RequestBody, endpoint: String) async throws -> Data {
         let url = URL(string: "\(baseURL)/\(endpoint)")!
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.httpBody = try jsonEncoder.encode(body)
-        _ = try await urlSession.data(for: request)
+        let (data, _) = try await urlSession.data(for: request)
+        return data
     }
-        
 }
 
 struct AIAgentRequest: Encodable {
@@ -49,4 +64,13 @@ struct AIAgentRequest: Encodable {
         case channelId = "channel_id"
         case platform
     }
+}
+
+struct AgentSummaryRequest: Encodable {
+    let text: String
+    let platform: String
+}
+
+struct AgentSummaryResponse: Decodable {
+    let summary: String
 }
