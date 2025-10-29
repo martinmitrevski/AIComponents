@@ -87,7 +87,7 @@ struct ContentView: View {
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .contentShape(Rectangle())
-            .highPriorityGesture(
+            .simultaneousGesture(
                 splitDragGesture(
                     splitWidth: splitWidth,
                     availableHeight: availableHeight
@@ -96,16 +96,24 @@ struct ContentView: View {
             )
             
             ComposerView(text: $text) { messageData in
+                let attachments = messageData.attachments.compactMap { url in
+                    try? AnyAttachmentPayload(localFileURL: url, attachmentType: .image)
+                }
+                let id = UUID().uuidString
+                let channelId = ChannelId(type: .messaging, id: id)
                 if channelController == nil {
                     channelController = try? chatClient.channelController(
-                        createChannelWithId: ChannelId(type: .messaging, id: UUID().uuidString)
+                        createChannelWithId: channelId
                     )
                     channelController?.synchronize { _ in
-                        channelController?.createNewMessage(text: messageData.text)
-                        showMessageList = true
+                        Task { @MainActor in
+                            try await AgentService.shared.setupAgent(channelId: id)
+                            channelController?.createNewMessage(text: messageData.text, attachments: attachments)
+                            showMessageList = true
+                        }
                     }
                 } else {
-                    channelController?.createNewMessage(text: messageData.text)
+                    channelController?.createNewMessage(text: messageData.text, attachments: attachments)
                 }
                 self.text = ""
             }
@@ -250,7 +258,29 @@ class AIComponentsViewFactory: ViewFactory {
     func makeMessageReadIndicatorView(channel: ChatChannel, message: ChatMessage) -> some View {
         EmptyView()
     }
+    
+    @ViewBuilder
+    func makeCustomAttachmentViewType(
+        for message: ChatMessage,
+        isFirst: Bool,
+        availableWidth: CGFloat,
+        scrolledId: Binding<String?>
+    ) -> some View {
+        StreamingMessageView(
+            content: message.text,
+            isGenerating: false //TODO: check this.
+        )
+        .padding()
+    }
 }
+
+class CustomMessageResolver: MessageTypeResolving {
+    
+    func hasCustomAttachment(message: ChatMessage) -> Bool {
+        message.extraData["ai_generated"] == true
+    }
+}
+
 
 private struct SplitSidebarView: View {
     

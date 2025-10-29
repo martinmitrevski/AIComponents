@@ -28,9 +28,12 @@ struct AIComponentsApp: App {
             showAvatars: false,
             showAvatarsInGroups: false,
             showMessageDate: false,
-            showAuthorName: false
-        ))
-        let utils = Utils(messageListConfig: messageListConfig)
+            showAuthorName: false,
+            spacerWidth: { _ in return 60 },
+        ), skipEditedMessageLabel: { message in
+            message.extraData["ai_generated"]?.boolValue == true
+        })
+        let utils = Utils(messageTypeResolver: CustomMessageResolver(), messageListConfig: messageListConfig)
         _streamChat = State(initialValue: StreamChat(chatClient: chatClient, utils: utils))
         chatClient.connectUser(
             userInfo: UserInfo(
