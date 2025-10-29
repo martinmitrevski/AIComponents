@@ -285,9 +285,10 @@ class AIComponentsViewFactory: ViewFactory {
         availableWidth: CGFloat,
         scrolledId: Binding<String?>
     ) -> some View {
+        let isGenerating = message.extraData["generating"]?.boolValue == true
         StreamingMessageView(
             content: message.text,
-            isGenerating: false //TODO: check this.
+            isGenerating: isGenerating
         )
         .padding()
     }
