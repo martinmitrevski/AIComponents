@@ -19,60 +19,24 @@ struct ContentView: View {
     
     @State var showMessageList = false
     @State private var isSplitOpen = false
-    @State private var dragOffset: CGFloat = 0
     @State private var composerHeight: CGFloat = 0
-    @State private var isSplitDragActive = false
-
-    private let splitWidthRatio: CGFloat = 0.82
-    private let edgeActivationWidth: CGFloat = 32
         
     var body: some View {
         NavigationStack {
-            GeometryReader { geometry in
-                let splitWidth = geometry.size.width * splitWidthRatio
-                let clampedDrag = max(-splitWidth, min(splitWidth, dragOffset))
-                let mainOffset = isSplitOpen ? (splitWidth + min(0, clampedDrag)) : max(0, clampedDrag)
-                let panelOffset = isSplitOpen ? min(0, clampedDrag) : (-splitWidth + max(0, clampedDrag))
-                let availableHeight = max(0, geometry.size.height - composerHeight)
-                
-                ZStack(alignment: .leading) {
-                    mainConversation(
-                        splitWidth: splitWidth,
-                        availableHeight: availableHeight
-                    )
-                        .frame(width: geometry.size.width, height: geometry.size.height)
-                        .offset(x: mainOffset)
-                    
-                    if isSplitOpen {
-                        Color.black.opacity(0.25)
-                            .ignoresSafeArea()
-                            .onTapGesture {
-                                closeSplitView()
-                            }
-                            .gesture(
-                                splitDragGesture(
-                                    splitWidth: splitWidth,
-                                    availableHeight: nil
-                                )
-                            )
-                    }
-                    
-                    if isSplitOpen || clampedDrag > 0 {
-                        SplitSidebarView(onChannelSelected: handleChannelSelection)
-                            .frame(width: splitWidth)
-                            .offset(x: panelOffset)
-                            .transition(.move(edge: .leading))
-                            .shadow(color: .black.opacity(0.15), radius: 12, x: 4, y: 0)
-                            .background(Color.white)
-                    }
+            SidebarView(
+                isOpen: $isSplitOpen,
+                excludedBottomHeight: composerHeight,
+                menu: {
+                    SplitSidebarView(onChannelSelected: handleChannelSelection)
+                },
+                content: {
+                    mainConversation()
                 }
-                .animation(.spring(response: 0.28, dampingFraction: 0.85), value: isSplitOpen)
-                .animation(.spring(response: 0.28, dampingFraction: 0.85), value: dragOffset)
-            }
+            )
         }
     }
     
-    private func mainConversation(splitWidth: CGFloat, availableHeight: CGFloat) -> some View {
+    private func mainConversation() -> some View {
         VStack(spacing: 0) {
             ZStack(alignment: .leading) {
                 Color.clear
@@ -93,13 +57,6 @@ struct ContentView: View {
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .contentShape(Rectangle())
-            .simultaneousGesture(
-                splitDragGesture(
-                    splitWidth: splitWidth,
-                    availableHeight: availableHeight
-                ),
-                including: .gesture
-            )
             
             ComposerView(text: $text) { messageData in
                 let attachments = messageData.attachments.compactMap { url in
@@ -146,87 +103,15 @@ struct ContentView: View {
             completion?()
         }
     }
-    
-    private func splitDragGesture(splitWidth: CGFloat, availableHeight: CGFloat?) -> some Gesture {
-        DragGesture(minimumDistance: 8, coordinateSpace: .local)
-            .onChanged { value in
-                let horizontal = value.translation.width
-                let vertical = value.translation.height
-                
-                if !isSplitOpen && !isSplitDragActive && value.startLocation.x > edgeActivationWidth {
-                    return
-                }
-                
-                if let availableHeight, value.startLocation.y > availableHeight {
-                    return
-                }
-                if abs(horizontal) < abs(vertical) {
-                    return
-                }
-                
-                if !isSplitDragActive {
-                    isSplitDragActive = true
-                }
-                
-                if isSplitOpen {
-                    dragOffset = min(0, horizontal)
-                } else if horizontal > 0 {
-                    dragOffset = horizontal
-                }
-            }
-            .onEnded { value in
-                let horizontal = value.translation.width
-                let vertical = value.translation.height
-                
-                defer {
-                    dragOffset = 0
-                    isSplitDragActive = false
-                }
-                
-                if !isSplitOpen && value.startLocation.x > edgeActivationWidth {
-                    return
-                }
-                if let availableHeight, value.startLocation.y > availableHeight {
-                    return
-                }
-                if abs(horizontal) < abs(vertical) {
-                    return
-                }
-                if isSplitOpen {
-                    if horizontal < -splitWidth * 0.2 {
-                        closeSplitView(animated: true)
-                    }
-                } else if horizontal > splitWidth * 0.2 {
-                    openSplitView()
-                }
-            }
-    }
-    
-    private func openSplitView() {
-        withAnimation(.spring(response: 0.28, dampingFraction: 0.85)) {
-            isSplitOpen = true
-            dragOffset = 0
-        }
-    }
-    
-    private func closeSplitView(animated: Bool = false) {
-        let animation: Animation? = animated ? .spring(response: 0.28, dampingFraction: 0.85) : nil
-        if let animation {
-            withAnimation(animation) {
-                isSplitOpen = false
-            }
-        } else {
-            isSplitOpen = false
-        }
-        dragOffset = 0
-    }
 
     private func handleChannelSelection(_ channel: ChatChannel) {
         let controller = chatClient.channelController(for: channel.cid)
         channelController = controller
         showMessageList = true
         controller.synchronize { _ in }
-        closeSplitView(animated: true)
+        withAnimation(.spring(response: 0.28, dampingFraction: 0.85)) {
+            isSplitOpen = false
+        }
     }
 }
 
@@ -326,6 +211,14 @@ struct ConversationListView: View {
     var body: some View {
         ScrollView {
             LazyVStack {
+                HStack {
+                    Text("Conversations")
+                        .font(.headline)
+                    
+                    Spacer()
+                }
+                .padding()
+
                 ForEach(viewModel.channels) { channel in
                     HStack {
                         Text(channel.name ?? channel.id)
