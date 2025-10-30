@@ -159,6 +159,7 @@ class AIComponentsViewFactory: ViewFactory {
     @Injected(\.chatClient) var chatClient: ChatClient
     
     static let shared = AIComponentsViewFactory()
+    let typingIndicatorHandler = TypingIndicatorHandler()
     
     public func makeMessageListBackground(
         colors: ColorPalette,
@@ -184,6 +185,17 @@ class AIComponentsViewFactory: ViewFactory {
             isGenerating: isGenerating
         )
         .padding()
+    }
+    
+    func makeMessageListContainerModifier() -> some ViewModifier {
+        CustomMessageListContainerModifier(typingIndicatorHandler: typingIndicatorHandler)
+    }
+    
+    func makeEmptyMessagesView(
+        for channel: ChatChannel,
+        colors: ColorPalette
+    ) -> some View {
+        AIAgentOverlayView(typingIndicatorHandler: typingIndicatorHandler)
     }
 }
 
@@ -256,5 +268,36 @@ private struct ComposerHeightPreferenceKey: PreferenceKey {
     
     static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
         value = nextValue()
+    }
+}
+
+struct CustomMessageListContainerModifier: ViewModifier {
+    
+    @ObservedObject var typingIndicatorHandler: TypingIndicatorHandler
+    
+    func body(content: Content) -> some View {
+        content.overlay {
+            AIAgentOverlayView(typingIndicatorHandler: typingIndicatorHandler)
+        }
+    }
+}
+
+struct AIAgentOverlayView: View {
+    
+    @ObservedObject var typingIndicatorHandler: TypingIndicatorHandler
+    
+    var body: some View {
+        VStack {
+            Spacer()
+            if typingIndicatorHandler.typingIndicatorShown {
+                HStack {
+                    AITypingIndicatorView(text: typingIndicatorHandler.state)
+                    Spacer()
+                }
+                .padding()
+                .frame(height: 80)
+                .background(Color(UIColor.secondarySystemBackground))
+            }
+        }
     }
 }
