@@ -2,7 +2,7 @@
 //  SidebarView.swift
 //  AIComponents
 //
-//  Created by ChatGPT on 29.10.25.
+//  Created by Martin Mitrevski on 29.10.25.
 //
 
 import SwiftUI
@@ -24,38 +24,47 @@ struct SidebarView<Menu: View, Content: View>: View {
         GeometryReader { geometry in
             let splitWidth = geometry.size.width * splitWidthRatio
             let clampedDrag = max(-splitWidth, min(splitWidth, dragOffset))
-            let mainOffset = isOpen ? (splitWidth + min(0, clampedDrag)) : max(0, clampedDrag)
-            let panelOffset = isOpen ? min(0, clampedDrag) : (-splitWidth + max(0, clampedDrag))
+            let baselineOffset = isOpen ? 0 : -splitWidth
+            let totalOffset = baselineOffset + clampedDrag
             let availableHeight = max(0, geometry.size.height - excludedBottomHeight)
             let contentGesture = splitDragGesture(splitWidth: splitWidth, availableHeight: availableHeight)
             let overlayGesture = splitDragGesture(splitWidth: splitWidth, availableHeight: nil)
+            let openProgress = min(max(1 - abs(totalOffset) / max(splitWidth, .leastNormalMagnitude), 0), 1)
+            let overlayOrigin = max(splitWidth + totalOffset, 0)
+            let overlayWidth = max(geometry.size.width - overlayOrigin, 0)
             
             ZStack(alignment: .leading) {
-                content()
-                    .frame(width: geometry.size.width, height: geometry.size.height)
-                    .offset(x: mainOffset)
-                    .simultaneousGesture(contentGesture, including: .gesture)
+                HStack(spacing: 0) {
+                    menu()
+                        .frame(width: splitWidth, height: geometry.size.height)
+                        .background(Color.white)
+                        .shadow(color: .black.opacity(0.15), radius: 12, x: 4, y: 0)
+                        .simultaneousGesture(contentGesture, including: .gesture)
+                    
+                    content()
+                        .frame(width: geometry.size.width, height: geometry.size.height)
+                        .simultaneousGesture(contentGesture, including: .gesture)
+                }
+                .offset(x: totalOffset)
                 
-                if isOpen {
-                    Color.black.opacity(0.25)
+                if openProgress > 0 {
+                    Color.black.opacity(0.25 * openProgress)
+                        .frame(width: overlayWidth)
+                        .offset(x: overlayOrigin)
                         .ignoresSafeArea()
                         .onTapGesture {
                             closeSplitView(animated: true)
                         }
                         .gesture(overlayGesture)
                 }
-                
-                if isOpen || clampedDrag > 0 {
-                    menu()
-                        .frame(width: splitWidth)
-                        .offset(x: panelOffset)
-                        .transition(.move(edge: .leading))
-                        .shadow(color: .black.opacity(0.15), radius: 12, x: 4, y: 0)
-                        .background(Color.white)
-                }
             }
             .animation(sidebarAnimation, value: isOpen)
             .animation(sidebarAnimation, value: dragOffset)
+            .transaction { transaction in
+                if isDragActive {
+                    transaction.animation = .none
+                }
+            }
         }
         .onChange(of: isOpen) { _, newValue in
             if !newValue {
@@ -87,36 +96,43 @@ struct SidebarView<Menu: View, Content: View>: View {
                 }
                 
                 if isOpen {
-                    dragOffset = min(0, horizontal)
-                } else if horizontal > 0 {
-                    dragOffset = horizontal
+                    dragOffset = max(-splitWidth, min(0, horizontal))
+                } else if horizontal >= 0 {
+                    dragOffset = min(splitWidth, horizontal)
+                } else {
+                    dragOffset = 0
                 }
             }
             .onEnded { value in
                 let horizontal = value.translation.width
                 let vertical = value.translation.height
                 
-                defer {
-                    dragOffset = 0
-                    isDragActive = false
-                }
-                
                 if !isOpen && value.startLocation.x > edgeActivationWidth {
+                    resetDragState(animated: false)
                     return
                 }
                 if let availableHeight, value.startLocation.y > availableHeight {
+                    resetDragState(animated: false)
                     return
                 }
                 if abs(horizontal) < abs(vertical) {
+                    resetDragState(animated: false)
                     return
                 }
+                
                 if isOpen {
                     if horizontal < -splitWidth * 0.2 {
                         closeSplitView(animated: true)
+                    } else {
+                        openSplitView()
                     }
                 } else if horizontal > splitWidth * 0.2 {
                     openSplitView()
+                } else {
+                    closeSplitView(animated: true)
                 }
+                
+                resetDragState(animated: false)
             }
     }
     
@@ -125,6 +141,7 @@ struct SidebarView<Menu: View, Content: View>: View {
             isOpen = true
             dragOffset = 0
         }
+        isDragActive = false
     }
     
     private func closeSplitView(animated: Bool) {
@@ -132,11 +149,24 @@ struct SidebarView<Menu: View, Content: View>: View {
         if let animation {
             withAnimation(animation) {
                 isOpen = false
+                dragOffset = 0
             }
         } else {
             isOpen = false
+            dragOffset = 0
         }
-        dragOffset = 0
+        isDragActive = false
+    }
+    
+    private func resetDragState(animated: Bool) {
+        let animation = animated ? sidebarAnimation : nil
+        if let animation {
+            withAnimation(animation) {
+                dragOffset = 0
+            }
+        } else {
+            dragOffset = 0
+        }
         isDragActive = false
     }
 }

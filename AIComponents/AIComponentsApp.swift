@@ -29,7 +29,7 @@ struct AIComponentsApp: App {
             showAvatarsInGroups: false,
             showMessageDate: false,
             showAuthorName: false,
-            spacerWidth: { _ in return 60 },
+            spacerWidth: { _ in return 0 },
         ), skipEditedMessageLabel: { message in
             message.extraData["ai_generated"]?.boolValue == true
         })
