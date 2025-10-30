@@ -17,23 +17,23 @@ class AgentService {
     
     private let urlSession = URLSession.shared
     
-    func setupAgent(channelId: String) async throws {
+    func setupAgent(channelId: String, model: String? = nil) async throws {
         try await executePostRequest(
-            body: AIAgentRequest(channelId: channelId),
+            body: AIAgentRequest(channelId: channelId, model: model),
             endpoint: "start-ai-agent"
         )
     }
     
     func stopAgent(channelId: String) async throws {
         try await executePostRequest(
-            body: AIAgentRequest(channelId: channelId),
+            body: AIAgentRequest(channelId: channelId, model: nil),
             endpoint: "stop-ai-agent"
         )
     }
     
-    func summarize(text: String, platform: String) async throws -> String {
+    func summarize(text: String, platform: String, model: String? = nil) async throws -> String {
         let data = try await executePostRequestWithResponse(
-            body: AgentSummaryRequest(text: text, platform: platform),
+            body: AgentSummaryRequest(text: text, platform: platform, model: model),
             endpoint: "summarize"
         )
 
@@ -59,16 +59,19 @@ class AgentService {
 struct AIAgentRequest: Encodable {
     let channelId: String
     let platform: String = "openai"
+    let model: String?
     
     enum CodingKeys: String, CodingKey {
         case channelId = "channel_id"
         case platform
+        case model
     }
 }
 
 struct AgentSummaryRequest: Encodable {
     let text: String
     let platform: String
+    let model: String?
 }
 
 struct AgentSummaryResponse: Decodable {

@@ -93,24 +93,32 @@ struct ContentView: View {
             channelController = try? chatClient.channelController(
                 createChannelWithId: channelId
             )
-            channelController?.synchronize { _ in
-                Task { @MainActor in
-                    try await AgentService.shared.setupAgent(channelId: id)
-                    completion?()
-                }
-            }
+            setupAgent(for: channelController, completion: completion)
         } else {
             completion?()
         }
     }
 
     private func handleChannelSelection(_ channel: ChatChannel) {
-        let controller = chatClient.channelController(for: channel.cid)
-        channelController = controller
+        channelController = chatClient.channelController(for: channel.cid)
         showMessageList = true
-        controller.synchronize { _ in }
+        setupAgent(for: channelController)
         withAnimation(.spring(response: 0.28, dampingFraction: 0.85)) {
             isSplitOpen = false
+        }
+    }
+    
+    private func setupAgent(
+        for channelController: ChatChannelController?,
+        completion: (() -> ())? = nil
+    ) {
+        channelController?.synchronize { _ in
+            Task { @MainActor in
+                if let id = channelController?.cid?.id {
+                    try await AgentService.shared.setupAgent(channelId: id)
+                }
+                completion?()
+            }
         }
     }
 }
