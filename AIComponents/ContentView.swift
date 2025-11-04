@@ -23,6 +23,9 @@ struct ContentView: View {
     @State private var isSplitOpen = false
     @State private var composerHeight: CGFloat = 0
     @ObservedObject private var clientToolRegistry = ClientToolRegistry.shared
+    
+    //TODO: extract this.
+    let predefinedOptions = ["Create a painting in Renaissance-style", "Create a workout plan for resistance training", "Find the decade that a photo is from", "Help me study vocabulary for an exam"]
         
     var body: some View {
         NavigationStack {
@@ -56,34 +59,44 @@ struct ContentView: View {
                     ConversationView(viewModel: ChatChannelViewModel(channelController: channelController))
                         .id(channelController.cid)
                 } else {
-                    Color.clear
-                        .onChange(of: text) { oldValue, newValue in
-                            // already create the channel for faster reply.
-                            if text.count > 10 {
-                                setupChannel()
+                    VStack {
+                        Spacer()
+                        ScrollView(.horizontal) {
+                            LazyHStack {
+                                ForEach(predefinedOptions, id: \.self) { option in
+                                    Button {
+                                        sendMessage(.init(text: option))
+                                    } label: {
+                                        Text(option)
+                                            .font(.subheadline)
+                                            .foregroundColor(.primary)
+                                            .lineLimit(2)
+                                            .multilineTextAlignment(.leading)
+                                            .fixedSize(horizontal: false, vertical: true)
+                                            .frame(maxWidth: 160)
+                                            .padding()
+                                            .background(Color(UIColor.secondarySystemBackground))
+                                            .cornerRadius(16)
+                                    }
+                                }
                             }
+                            .padding()
                         }
+                        .frame(height: 100)
+                    }
+                    .onChange(of: text) { oldValue, newValue in
+                        // already create the channel for faster reply.
+                        if text.count > 5 {
+                            setupChannel()
+                        }
+                    }
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .contentShape(Rectangle())
             
             ComposerView(text: $text) { messageData in
-                let attachments = messageData.attachments.compactMap { url in
-                    try? AnyAttachmentPayload(localFileURL: url, attachmentType: .image)
-                }
-                setupChannel {
-                    channelController?.createNewMessage(text: messageData.text, attachments: attachments)
-                    showMessageList = true
-                    
-                    if channelController?.channel?.name == nil {
-                        Task {
-                            let summary = try await AgentService.shared.summarize(text: messageData.text, platform: "openai") //TODO: fix this
-                            channelController?.updateChannel(name: summary, imageURL: nil, team: nil)
-                        }
-                    }
-                }
-                self.text = ""
+                sendMessage(messageData)
             }
             .background(
                 GeometryReader { proxy in
@@ -94,6 +107,24 @@ struct ContentView: View {
                 composerHeight = newHeight
             }
         }
+    }
+    
+    private func sendMessage(_ messageData: MessageData) {
+        let attachments = messageData.attachments.compactMap { url in
+            try? AnyAttachmentPayload(localFileURL: url, attachmentType: .image)
+        }
+        setupChannel {
+            channelController?.createNewMessage(text: messageData.text, attachments: attachments)
+            showMessageList = true
+            
+            if channelController?.channel?.name == nil {
+                Task {
+                    let summary = try await AgentService.shared.summarize(text: messageData.text, platform: "openai") //TODO: fix this
+                    channelController?.updateChannel(name: summary, imageURL: nil, team: nil)
+                }
+            }
+        }
+        self.text = ""
     }
     
     private func setupChannel(completion: (() -> ())? = nil) {
