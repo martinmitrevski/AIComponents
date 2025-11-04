@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import MCP
 
 class AgentService {
     static let shared = AgentService()
@@ -30,7 +31,15 @@ class AgentService {
             endpoint: "stop-ai-agent"
         )
     }
-    
+
+    func registerTools(channelId: String, tools: [ToolRegistrationPayload]) async throws {
+        guard !tools.isEmpty else { return }
+        try await executePostRequest(
+            body: ToolRegistrationRequest(channelId: channelId, tools: tools),
+            endpoint: "register-tools"
+        )
+    }
+
     func summarize(text: String, platform: String, model: String? = nil) async throws -> String {
         let data = try await executePostRequestWithResponse(
             body: AgentSummaryRequest(text: text, platform: platform, model: model),
@@ -76,4 +85,22 @@ struct AgentSummaryRequest: Encodable {
 
 struct AgentSummaryResponse: Decodable {
     let summary: String
+}
+
+struct ToolRegistrationRequest: Encodable {
+    let channelId: String
+    let tools: [ToolRegistrationPayload]
+
+    enum CodingKeys: String, CodingKey {
+        case channelId = "channel_id"
+        case tools
+    }
+}
+
+struct ToolRegistrationPayload: Encodable {
+    let name: String
+    let description: String
+    let instructions: String?
+    let parameters: Value?
+    let showExternalSourcesIndicator: Bool?
 }

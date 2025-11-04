@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		84144E042EB8E95D00D0D034 /* MCP in Frameworks */ = {isa = PBXBuildFile; productRef = 84144E032EB8E95D00D0D034 /* MCP */; };
 		8464FB542EABCB5B00933768 /* StreamChatSwiftUI in Frameworks */ = {isa = PBXBuildFile; productRef = 8464FB532EABCB5B00933768 /* StreamChatSwiftUI */; };
 		8464FB582EABCBC200933768 /* StreamChatAI in Frameworks */ = {isa = PBXBuildFile; productRef = 8464FB572EABCBC200933768 /* StreamChatAI */; };
 /* End PBXBuildFile section */
@@ -29,6 +30,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				84144E042EB8E95D00D0D034 /* MCP in Frameworks */,
 				8464FB582EABCBC200933768 /* StreamChatAI in Frameworks */,
 				8464FB542EABCB5B00933768 /* StreamChatSwiftUI in Frameworks */,
 			);
@@ -84,6 +86,7 @@
 			packageProductDependencies = (
 				8464FB532EABCB5B00933768 /* StreamChatSwiftUI */,
 				8464FB572EABCBC200933768 /* StreamChatAI */,
+				84144E032EB8E95D00D0D034 /* MCP */,
 			);
 			productName = AIComponents;
 			productReference = 8464FB412EABCAB100933768 /* AIComponents.app */;
@@ -115,6 +118,7 @@
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
 				8464FB522EABCB5B00933768 /* XCRemoteSwiftPackageReference "stream-chat-swiftui" */,
+				84144E022EB8E95D00D0D034 /* XCRemoteSwiftPackageReference "swift-sdk" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 8464FB422EABCAB100933768 /* Products */;
@@ -364,6 +368,14 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
+		84144E022EB8E95D00D0D034 /* XCRemoteSwiftPackageReference "swift-sdk" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/modelcontextprotocol/swift-sdk";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 0.10.2;
+			};
+		};
 		8464FB522EABCB5B00933768 /* XCRemoteSwiftPackageReference "stream-chat-swiftui" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/GetStream/stream-chat-swiftui";
@@ -375,6 +387,11 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		84144E032EB8E95D00D0D034 /* MCP */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 84144E022EB8E95D00D0D034 /* XCRemoteSwiftPackageReference "swift-sdk" */;
+			productName = MCP;
+		};
 		8464FB532EABCB5B00933768 /* StreamChatSwiftUI */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = 8464FB522EABCB5B00933768 /* XCRemoteSwiftPackageReference "stream-chat-swiftui" */;

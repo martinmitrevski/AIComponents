@@ -54,6 +54,16 @@ class TypingIndicatorHandler: ObservableObject, EventsControllerDelegate, ChatCh
     }
     
     func eventsController(_ controller: EventsController, didReceiveEvent event: any Event) {
+        if
+            let unknownEvent = event as? UnknownChannelEvent,
+            let payload = unknownEvent.payload(ofType: ClientToolInvocationEventPayload.self)
+        {
+            Task { @MainActor in
+                ClientToolRegistry.shared.handleInvocation(payload, channelId: unknownEvent.cid)
+            }
+            return
+        }
+
         if event is AIIndicatorClearEvent {
             typingIndicatorShown = false
             generatingMessageId = nil

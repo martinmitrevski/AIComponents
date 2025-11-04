@@ -5,6 +5,8 @@
 //  Created by Martin Mitrevski on 24.10.25.
 //
 
+import Combine
+import MCP
 import SwiftUI
 import StreamChat
 import StreamChatAI
@@ -20,6 +22,7 @@ struct ContentView: View {
     @State var showMessageList = false
     @State private var isSplitOpen = false
     @State private var composerHeight: CGFloat = 0
+    @ObservedObject private var clientToolRegistry = ClientToolRegistry.shared
         
     var body: some View {
         NavigationStack {
@@ -32,6 +35,13 @@ struct ContentView: View {
                 content: {
                     mainConversation()
                 }
+            )
+        }
+        .alert(item: $clientToolRegistry.activeAlert) { alert in
+            Alert(
+                title: Text(alert.title),
+                message: Text(alert.message),
+                dismissButton: .default(Text("OK"))
             )
         }
     }
@@ -114,9 +124,21 @@ struct ContentView: View {
     ) {
         channelController?.synchronize { _ in
             Task { @MainActor in
-                if let id = channelController?.cid?.id {
-                    try await AgentService.shared.setupAgent(channelId: id)
+                guard let id = channelController?.cid?.id else {
+                    completion?()
+                    return
                 }
+
+                do {
+                    try await AgentService.shared.setupAgent(channelId: id)
+                    let tools = ClientToolRegistry.shared.registrationPayloads()
+                    if !tools.isEmpty {
+                        try await AgentService.shared.registerTools(channelId: id, tools: tools)
+                    }
+                } catch {
+                    print("Failed to setup AI agent or register tools:", error.localizedDescription)
+                }
+
                 completion?()
             }
         }
