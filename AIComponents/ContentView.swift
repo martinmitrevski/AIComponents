@@ -22,6 +22,7 @@ struct ContentView: View {
     @State var showMessageList = false
     @State private var isSplitOpen = false
     @State private var composerHeight: CGFloat = 0
+    @State private var isTextFieldFocused = true
     @ObservedObject private var clientToolRegistry = ClientToolRegistry.shared
     
     //TODO: extract this.
@@ -95,7 +96,7 @@ struct ContentView: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .contentShape(Rectangle())
             
-            ComposerView(text: $text) { messageData in
+            ComposerView(text: $text, isTextFieldFocused: $isTextFieldFocused) { messageData in
                 sendMessage(messageData)
             }
             .background(
@@ -105,6 +106,9 @@ struct ContentView: View {
             )
             .onPreferenceChange(ComposerHeightPreferenceKey.self) { newHeight in
                 composerHeight = newHeight
+            }
+            .onChange(of: isSplitOpen) { oldValue, newValue in
+                isTextFieldFocused = !isSplitOpen
             }
         }
     }
