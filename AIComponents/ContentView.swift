@@ -26,10 +26,10 @@ struct ContentView: View {
     @StateObject var viewModel: ComposerViewModel
     
     //TODO: extract this.
-    let predefinedOptions = ["Create a painting in Renaissance-style", "Create a workout plan for resistance training", "Find the decade that a photo is from", "Help me study vocabulary for an exam"]
+    let predefinedOptions = ["Create a painting in Renaissance-style", "Create a workout plan for resistance training", "Find the decade that a photo is from", "Help me study vocabulary for an exam", "Tell me the best stocks to invest"]
     
     init() {
-        _viewModel = StateObject(wrappedValue: .init(chatOptions: ChatOption.defaultOptions))
+        _viewModel = StateObject(wrappedValue: .init())
     }
         
     var body: some View {
@@ -51,6 +51,9 @@ struct ContentView: View {
                 message: Text(alert.message),
                 dismissButton: .default(Text("OK"))
             )
+        }
+        .onAppear {
+            viewModel.chatOptions = createChatOptions()
         }
     }
     
@@ -183,6 +186,60 @@ struct ContentView: View {
                 completion?()
             }
         }
+    }
+    
+    func createChatOptions() -> [ChatOption] {
+        var options = [
+            ChatOption(
+                id: "image",
+                title: "Create image",
+                description: "Visualize anything",
+                icon: "paintpalette",
+                shortTitle: "Image"
+            ),
+            ChatOption(
+                id: "research",
+                title: "Deep research",
+                description: "Get a detailed report",
+                icon: "binoculars.circle",
+                shortTitle: "Research"
+            ),
+            ChatOption(
+                id: "search",
+                title: "Web search",
+                description: "Find real-time news and info",
+                icon: "network",
+                shortTitle: "Search"
+            ),
+            ChatOption(
+                id: "study",
+                title: "Study and learn",
+                description: "Learn a new concept",
+                icon: "book",
+                shortTitle: "Study"
+            ),
+            ChatOption(
+                id: "agent",
+                title: "Agent mode",
+                description: "Get work done for you",
+                icon: "dot.circle.and.cursorarrow",
+                shortTitle: "Agent"
+            ),
+            ChatOption(
+                id: "files",
+                title: "Add files",
+                description: "Analyze or summarize",
+                icon: "zipper.page",
+                shortTitle: "Files"
+            )
+        ]
+        for index in options.indices {
+            options[index].action = { [weak viewModel = self.viewModel] in
+                viewModel?.selectedChatOption = options[index]
+                viewModel?.sheetShown = false
+            }
+        }
+        return options
     }
 }
 
@@ -358,56 +415,9 @@ struct AIAgentOverlayView: View {
                     Spacer()
                 }
                 .padding()
-                .frame(height: 80)
+                .frame(height: 60)
                 .background(Color(UIColor.secondarySystemBackground))
             }
         }
     }
-}
-
-extension ChatOption {
-    static let defaultOptions: [ChatOption] = [
-        ChatOption(
-            id: "image",
-            title: "Create image",
-            description: "Visualize anything",
-            icon: "paintpalette",
-            action: {}
-        ),
-        ChatOption(
-            id: "research",
-            title: "Deep research",
-            description: "Get a detailed report",
-            icon: "binoculars.circle",
-            action: {}
-        ),
-        ChatOption(
-            id: "search",
-            title: "Web search",
-            description: "Find real-time news and info",
-            icon: "binoculars.circle",
-            action: {}
-        ),
-        ChatOption(
-            id: "study",
-            title: "Study and learn",
-            description: "Learn a new concept",
-            icon: "binoculars.circle",
-            action: {}
-        ),
-        ChatOption(
-            id: "agent",
-            title: "Agent mode",
-            description: "Get work done for you",
-            icon: "dot.circle.and.cursorarrow",
-            action: {}
-        ),
-        ChatOption(
-            id: "files",
-            title: "Add files",
-            description: "Analyze or summarize",
-            icon: "dot.circle.and.cursorarrow",
-            action: {}
-        )
-    ]
 }

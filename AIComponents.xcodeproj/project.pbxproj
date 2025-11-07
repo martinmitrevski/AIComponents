@@ -8,13 +8,13 @@
 
 /* Begin PBXBuildFile section */
 		84144E042EB8E95D00D0D034 /* MCP in Frameworks */ = {isa = PBXBuildFile; productRef = 84144E032EB8E95D00D0D034 /* MCP */; };
+		841457342EBE538300D0D034 /* StreamChatAI in Frameworks */ = {isa = PBXBuildFile; productRef = 841457332EBE538300D0D034 /* StreamChatAI */; };
 		8464FB542EABCB5B00933768 /* StreamChatSwiftUI in Frameworks */ = {isa = PBXBuildFile; productRef = 8464FB532EABCB5B00933768 /* StreamChatSwiftUI */; };
 		8464FB582EABCBC200933768 /* StreamChatAI in Frameworks */ = {isa = PBXBuildFile; productRef = 8464FB572EABCBC200933768 /* StreamChatAI */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
 		8464FB412EABCAB100933768 /* AIComponents.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = AIComponents.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		8464FB552EABCB8900933768 /* StreamChatAI */ = {isa = PBXFileReference; lastKnownFileType = wrapper; name = StreamChatAI; path = ../StreamChatAI; sourceTree = SOURCE_ROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -32,6 +32,7 @@
 			files = (
 				84144E042EB8E95D00D0D034 /* MCP in Frameworks */,
 				8464FB582EABCBC200933768 /* StreamChatAI in Frameworks */,
+				841457342EBE538300D0D034 /* StreamChatAI in Frameworks */,
 				8464FB542EABCB5B00933768 /* StreamChatSwiftUI in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -42,7 +43,6 @@
 		8464FB382EABCAB100933768 = {
 			isa = PBXGroup;
 			children = (
-				8464FB552EABCB8900933768 /* StreamChatAI */,
 				8464FB432EABCAB100933768 /* AIComponents */,
 				8464FB562EABCBC200933768 /* Frameworks */,
 				8464FB422EABCAB100933768 /* Products */,
@@ -87,6 +87,7 @@
 				8464FB532EABCB5B00933768 /* StreamChatSwiftUI */,
 				8464FB572EABCBC200933768 /* StreamChatAI */,
 				84144E032EB8E95D00D0D034 /* MCP */,
+				841457332EBE538300D0D034 /* StreamChatAI */,
 			);
 			productName = AIComponents;
 			productReference = 8464FB412EABCAB100933768 /* AIComponents.app */;
@@ -119,6 +120,7 @@
 			packageReferences = (
 				8464FB522EABCB5B00933768 /* XCRemoteSwiftPackageReference "stream-chat-swiftui" */,
 				84144E022EB8E95D00D0D034 /* XCRemoteSwiftPackageReference "swift-sdk" */,
+				841457322EBE538300D0D034 /* XCRemoteSwiftPackageReference "stream-chat-swift-ai" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 8464FB422EABCAB100933768 /* Products */;
@@ -376,6 +378,14 @@
 				minimumVersion = 0.10.2;
 			};
 		};
+		841457322EBE538300D0D034 /* XCRemoteSwiftPackageReference "stream-chat-swift-ai" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/GetStream/stream-chat-swift-ai.git";
+			requirement = {
+				branch = main;
+				kind = branch;
+			};
+		};
 		8464FB522EABCB5B00933768 /* XCRemoteSwiftPackageReference "stream-chat-swiftui" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/GetStream/stream-chat-swiftui";
@@ -391,6 +401,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 84144E022EB8E95D00D0D034 /* XCRemoteSwiftPackageReference "swift-sdk" */;
 			productName = MCP;
+		};
+		841457332EBE538300D0D034 /* StreamChatAI */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 841457322EBE538300D0D034 /* XCRemoteSwiftPackageReference "stream-chat-swift-ai" */;
+			productName = StreamChatAI;
 		};
 		8464FB532EABCB5B00933768 /* StreamChatSwiftUI */ = {
 			isa = XCSwiftPackageProductDependency;

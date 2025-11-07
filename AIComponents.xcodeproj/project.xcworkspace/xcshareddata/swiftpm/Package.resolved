@@ -1,4 +1,5 @@
 {
+  "originHash" : "e3110d611f73d688f95bbe170b4e84128caa078db7dbe30f58e83cbf306ee395",
   "pins" : [
     {
       "identity" : "eventsource",
@@ -34,6 +35,15 @@
       "state" : {
         "revision" : "61ee0eb8bf72dd55dbe3a7fb5221c096204d7ff1",
         "version" : "4.91.0"
+      }
+    },
+    {
+      "identity" : "stream-chat-swift-ai",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/GetStream/stream-chat-swift-ai.git",
+      "state" : {
+        "branch" : "main",
+        "revision" : "4e90675314f158f16a94f313d3d6b616862d0a67"
       }
     },
     {
@@ -82,5 +92,5 @@
       }
     }
   ],
-  "version" : 2
+  "version" : 3
 }
