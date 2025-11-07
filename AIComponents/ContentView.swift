@@ -16,7 +16,6 @@ struct ContentView: View {
     
     @Injected(\.chatClient) var chatClient
     
-    @State var text = ""
     @State var channelController: ChatChannelController?
     
     @State var showMessageList = false
@@ -24,9 +23,14 @@ struct ContentView: View {
     @State private var composerHeight: CGFloat = 0
     @State private var isTextFieldFocused = true
     @ObservedObject private var clientToolRegistry = ClientToolRegistry.shared
+    @StateObject var viewModel: ComposerViewModel
     
     //TODO: extract this.
     let predefinedOptions = ["Create a painting in Renaissance-style", "Create a workout plan for resistance training", "Find the decade that a photo is from", "Help me study vocabulary for an exam"]
+    
+    init() {
+        _viewModel = StateObject(wrappedValue: .init(chatOptions: ChatOption.defaultOptions))
+    }
         
     var body: some View {
         NavigationStack {
@@ -85,9 +89,9 @@ struct ContentView: View {
                         }
                         .frame(height: 100)
                     }
-                    .onChange(of: text) { oldValue, newValue in
+                    .onChange(of: viewModel.text) { oldValue, newValue in
                         // already create the channel for faster reply.
-                        if text.count > 5 {
+                        if viewModel.text.count > 5 {
                             setupChannel()
                         }
                     }
@@ -96,7 +100,9 @@ struct ContentView: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .contentShape(Rectangle())
             
-            ComposerView(text: $text, isTextFieldFocused: $isTextFieldFocused) { messageData in
+            ComposerView(
+                viewModel: viewModel
+            ) { messageData in
                 sendMessage(messageData)
             }
             .background(
@@ -128,7 +134,7 @@ struct ContentView: View {
                 }
             }
         }
-        self.text = ""
+        viewModel.text = ""
     }
     
     private func setupChannel(completion: (() -> ())? = nil) {
@@ -357,4 +363,51 @@ struct AIAgentOverlayView: View {
             }
         }
     }
+}
+
+extension ChatOption {
+    static let defaultOptions: [ChatOption] = [
+        ChatOption(
+            id: "image",
+            title: "Create image",
+            description: "Visualize anything",
+            icon: "paintpalette",
+            action: {}
+        ),
+        ChatOption(
+            id: "research",
+            title: "Deep research",
+            description: "Get a detailed report",
+            icon: "binoculars.circle",
+            action: {}
+        ),
+        ChatOption(
+            id: "search",
+            title: "Web search",
+            description: "Find real-time news and info",
+            icon: "binoculars.circle",
+            action: {}
+        ),
+        ChatOption(
+            id: "study",
+            title: "Study and learn",
+            description: "Learn a new concept",
+            icon: "binoculars.circle",
+            action: {}
+        ),
+        ChatOption(
+            id: "agent",
+            title: "Agent mode",
+            description: "Get work done for you",
+            icon: "dot.circle.and.cursorarrow",
+            action: {}
+        ),
+        ChatOption(
+            id: "files",
+            title: "Add files",
+            description: "Analyze or summarize",
+            icon: "dot.circle.and.cursorarrow",
+            action: {}
+        )
+    ]
 }
