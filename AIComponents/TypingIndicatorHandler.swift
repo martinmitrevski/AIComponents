@@ -59,7 +59,10 @@ class TypingIndicatorHandler: ObservableObject, EventsControllerDelegate, ChatCh
             let payload = unknownEvent.payload(ofType: ClientToolInvocationEventPayload.self)
         {
             Task { @MainActor in
-                ClientToolRegistry.shared.handleInvocation(payload, channelId: unknownEvent.cid)
+                ClientToolRegistry.shared.handleInvocation(
+                    payload,
+                    channelId: AnyHashable(unknownEvent.cid)
+                )
             }
             return
         }
