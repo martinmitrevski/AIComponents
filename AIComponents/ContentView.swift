@@ -24,12 +24,23 @@ struct ContentView: View {
     @State private var isTextFieldFocused = true
     @ObservedObject private var clientToolActionHandler = ClientToolActionHandler.shared
     @StateObject var viewModel: ComposerViewModel
+    @State var clientToolRegistry: ClientToolRegistry
+    @State var typingIndicatorHandler: TypingIndicatorHandler
     
     //TODO: extract this.
     let predefinedOptions = ["Create a painting in Renaissance-style", "Create a workout plan for resistance training", "Find the decade that a photo is from", "Help me study vocabulary for an exam", "Tell me the best stocks to invest"]
     
     init() {
         _viewModel = StateObject(wrappedValue: .init())
+        let clientToolRegistry = ClientToolRegistry()
+        self.clientToolRegistry = clientToolRegistry
+        _typingIndicatorHandler = State(initialValue: TypingIndicatorHandler(
+                actionHandler: ClientToolActionHandler.shared,
+                clientToolRegistry: clientToolRegistry
+            )
+        )
+
+        clientToolRegistry.register(tool: GreetClientTool())
     }
         
     var body: some View {
@@ -64,8 +75,11 @@ struct ContentView: View {
                     .allowsHitTesting(false)
                 
                 if showMessageList, let channelController {
-                    ConversationView(viewModel: ChatChannelViewModel(channelController: channelController))
-                        .id(channelController.cid)
+                    ConversationView(
+                        viewModel: ChatChannelViewModel(channelController: channelController),
+                        typingIndicatorHandler: typingIndicatorHandler
+                    )
+                    .id(channelController.cid)
                 } else {
                     VStack {
                         Spacer()
@@ -175,7 +189,7 @@ struct ContentView: View {
 
                 do {
                     try await AgentService.shared.setupAgent(channelId: id)
-                    let tools = ClientToolRegistry.shared.registrationPayloads()
+                    let tools = clientToolRegistry.registrationPayloads()
                     if !tools.isEmpty {
                         try await AgentService.shared.registerTools(channelId: id, tools: tools)
                     }
@@ -245,11 +259,14 @@ struct ContentView: View {
 
 struct ConversationView: View {
     @StateObject var viewModel: ChatChannelViewModel
+    let typingIndicatorHandler: TypingIndicatorHandler
     
     var body: some View {
         if let channel = viewModel.channel {
             MessageListView(
-                factory: AIComponentsViewFactory.shared,
+                factory: AIComponentsViewFactory(
+                    typingIndicatorHandler: typingIndicatorHandler
+                ),
                 channel: channel,
                 messages: viewModel.messages,
                 messagesGroupingInfo: viewModel.messagesGroupingInfo,
@@ -278,9 +295,12 @@ class AIComponentsViewFactory: ViewFactory {
     
     @Injected(\.chatClient) var chatClient: ChatClient
     
-    static let shared = AIComponentsViewFactory()
     private let actionHandler = ClientToolActionHandler.shared
-    lazy var typingIndicatorHandler = TypingIndicatorHandler(actionHandler: actionHandler)
+    let typingIndicatorHandler: TypingIndicatorHandler
+    
+    init(typingIndicatorHandler: TypingIndicatorHandler) {
+        self.typingIndicatorHandler = typingIndicatorHandler
+    }
     
     public func makeMessageListBackground(
         colors: ColorPalette,

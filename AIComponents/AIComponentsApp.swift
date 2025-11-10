@@ -42,8 +42,6 @@ struct AIComponentsApp: App {
             ),
             token: try! Token(rawValue: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiYW5ha2luX3NreXdhbGtlciJ9.ZwCV1qPrSAsie7-0n61JQrSEDbp6fcMgVh4V2CB0kM8")
         )
-
-        ClientToolRegistry.shared.register(tool: GreetClientTool())
     }
     
     var body: some Scene {

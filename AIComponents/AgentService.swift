@@ -7,6 +7,7 @@
 
 import Foundation
 import MCP
+import StreamChatAI
 
 class AgentService {
     static let shared = AgentService()
@@ -95,12 +96,4 @@ struct ToolRegistrationRequest: Encodable {
         case channelId = "channel_id"
         case tools
     }
-}
-
-struct ToolRegistrationPayload: Encodable {
-    let name: String
-    let description: String
-    let instructions: String?
-    let parameters: Value?
-    let showExternalSourcesIndicator: Bool?
 }

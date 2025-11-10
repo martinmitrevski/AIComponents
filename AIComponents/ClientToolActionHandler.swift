@@ -7,6 +7,7 @@
 
 import Combine
 import Foundation
+import StreamChatAI
 
 final class ClientToolActionHandler: ObservableObject, ClientToolActionHandling {
     static let shared = ClientToolActionHandler()

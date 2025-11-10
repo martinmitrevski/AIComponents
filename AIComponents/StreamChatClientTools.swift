@@ -8,6 +8,7 @@
 import Foundation
 import MCP
 import StreamChat
+import StreamChatAI
 
 struct ClientToolInvocationEventPayload: CustomEventPayload, Hashable {
     static let eventType: EventType = EventType(rawValue: "custom_client_tool_invocation")

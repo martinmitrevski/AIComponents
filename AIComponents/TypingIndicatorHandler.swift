@@ -8,6 +8,7 @@
 import Combine
 import Foundation
 import StreamChat
+import StreamChatAI
 import StreamChatSwiftUI
 
 class TypingIndicatorHandler: ObservableObject, EventsControllerDelegate, ChatChannelWatcherListControllerDelegate {
@@ -48,9 +49,11 @@ class TypingIndicatorHandler: ObservableObject, EventsControllerDelegate, ChatCh
     }
     
     var watcherListController: ChatChannelWatcherListController?
+    let clientToolRegistry: ClientToolRegistry
         
-    init(actionHandler: ClientToolActionHandling = ClientToolActionHandler.shared) {
+    init(actionHandler: ClientToolActionHandling, clientToolRegistry: ClientToolRegistry) {
         self.clientToolActionHandler = actionHandler
+        self.clientToolRegistry = clientToolRegistry
         eventsController = chatClient.eventsController()
         eventsController.delegate = self
     }
@@ -65,7 +68,7 @@ class TypingIndicatorHandler: ObservableObject, EventsControllerDelegate, ChatCh
                     payload: payload,
                     channelId: AnyHashable(unknownEvent.cid)
                 )
-                let actions = ClientToolRegistry.shared.handleInvocation(invocation)
+                let actions = clientToolRegistry.handleInvocation(invocation)
                 guard !actions.isEmpty else { return }
                 clientToolActionHandler.handle(actions)
             }

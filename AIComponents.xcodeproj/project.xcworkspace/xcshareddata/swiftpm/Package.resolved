@@ -1,5 +1,5 @@
 {
-  "originHash" : "e3110d611f73d688f95bbe170b4e84128caa078db7dbe30f58e83cbf306ee395",
+  "originHash" : "34264be661cc11ab6faf64ea1985b3afb8570e7e04bd95c1c5fb491ad191aa08",
   "pins" : [
     {
       "identity" : "eventsource",
@@ -43,7 +43,7 @@
       "location" : "https://github.com/GetStream/stream-chat-swift-ai.git",
       "state" : {
         "branch" : "main",
-        "revision" : "4e90675314f158f16a94f313d3d6b616862d0a67"
+        "revision" : "90a29ed4adcf98686335f01bf2583d9ad6bf5446"
       }
     },
     {
