@@ -38,9 +38,33 @@ struct ClientToolInvocationEventPayload: CustomEventPayload, Hashable {
 }
 
 extension ClientToolInvocation {
-    var streamChatChannelId: ChannelId? {
-        guard let channelId else { return nil }
-        return channelId.base as? ChannelId
+    init(
+        payload: ClientToolInvocationEventPayload,
+        channelId: AnyHashable?
+    ) {
+        self.init(
+            tool: .init(payload.tool),
+            args: payload.args?.encodedAsJSONData(),
+            messageId: payload.messageId,
+            channelId: channelId
+        )
+    }
+}
+
+extension ClientToolInvocation.ToolDescriptor {
+    init(_ descriptor: ClientToolInvocationEventPayload.ToolDescriptor) {
+        self.init(
+            name: descriptor.name,
+            description: descriptor.description,
+            instructions: descriptor.instructions,
+            parameters: descriptor.parameters?.encodedAsJSONData()
+        )
+    }
+}
+
+private extension RawJSON {
+    func encodedAsJSONData(using encoder: JSONEncoder = .init()) -> Data? {
+        try? encoder.encode(self)
     }
 }
 
@@ -67,10 +91,16 @@ final class GreetClientTool: ClientTool {
 
     let showExternalSourcesIndicator = false
 
-    func handleInvocation(_ invocation: ClientToolInvocation) -> ClientToolAlert? {
-        ClientToolAlert(
-            title: "Greetings!",
-            message: "👋 Hello there! The assistant asked me to greet you."
-        )
+    func handleInvocation(_ invocation: ClientToolInvocation) -> [ClientToolAction] {
+        [
+            {
+                ClientToolActionHandler.shared.presentAlert(
+                    ClientToolAlert(
+                        title: "Greetings!",
+                        message: "👋 Hello there! The assistant asked me to greet you."
+                    )
+                )
+            }
+        ]
     }
 }

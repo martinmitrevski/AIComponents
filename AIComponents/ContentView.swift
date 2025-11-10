@@ -22,7 +22,7 @@ struct ContentView: View {
     @State private var isSplitOpen = false
     @State private var composerHeight: CGFloat = 0
     @State private var isTextFieldFocused = true
-    @ObservedObject private var clientToolRegistry = ClientToolRegistry.shared
+    @ObservedObject private var clientToolActionHandler = ClientToolActionHandler.shared
     @StateObject var viewModel: ComposerViewModel
     
     //TODO: extract this.
@@ -45,7 +45,7 @@ struct ContentView: View {
                 }
             )
         }
-        .alert(item: $clientToolRegistry.activeAlert) { alert in
+        .alert(item: $clientToolActionHandler.presentedAlert) { alert in
             Alert(
                 title: Text(alert.title),
                 message: Text(alert.message),
@@ -279,7 +279,8 @@ class AIComponentsViewFactory: ViewFactory {
     @Injected(\.chatClient) var chatClient: ChatClient
     
     static let shared = AIComponentsViewFactory()
-    let typingIndicatorHandler = TypingIndicatorHandler()
+    private let actionHandler = ClientToolActionHandler.shared
+    lazy var typingIndicatorHandler = TypingIndicatorHandler(actionHandler: actionHandler)
     
     public func makeMessageListBackground(
         colors: ColorPalette,

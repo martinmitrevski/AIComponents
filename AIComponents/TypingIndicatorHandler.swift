@@ -15,6 +15,7 @@ class TypingIndicatorHandler: ObservableObject, EventsControllerDelegate, ChatCh
     @Injected(\.chatClient) var chatClient: ChatClient
     
     private var eventsController: EventsController!
+    private let clientToolActionHandler: ClientToolActionHandling
     
     @Published var state: String = ""
     
@@ -48,7 +49,8 @@ class TypingIndicatorHandler: ObservableObject, EventsControllerDelegate, ChatCh
     
     var watcherListController: ChatChannelWatcherListController?
         
-    init() {
+    init(actionHandler: ClientToolActionHandling = ClientToolActionHandler.shared) {
+        self.clientToolActionHandler = actionHandler
         eventsController = chatClient.eventsController()
         eventsController.delegate = self
     }
@@ -58,11 +60,14 @@ class TypingIndicatorHandler: ObservableObject, EventsControllerDelegate, ChatCh
             let unknownEvent = event as? UnknownChannelEvent,
             let payload = unknownEvent.payload(ofType: ClientToolInvocationEventPayload.self)
         {
-            Task { @MainActor in
-                ClientToolRegistry.shared.handleInvocation(
-                    payload,
+            Task { @MainActor [clientToolActionHandler] in
+                let invocation = ClientToolInvocation(
+                    payload: payload,
                     channelId: AnyHashable(unknownEvent.cid)
                 )
+                let actions = ClientToolRegistry.shared.handleInvocation(invocation)
+                guard !actions.isEmpty else { return }
+                clientToolActionHandler.handle(actions)
             }
             return
         }
