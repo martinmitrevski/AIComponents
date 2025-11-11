@@ -87,28 +87,9 @@ struct ContentView: View {
                 } else {
                     VStack {
                         Spacer()
-                        ScrollView(.horizontal) {
-                            LazyHStack {
-                                ForEach(predefinedOptions, id: \.self) { option in
-                                    Button {
-                                        sendMessage(.init(text: option))
-                                    } label: {
-                                        Text(option)
-                                            .font(.subheadline)
-                                            .foregroundColor(.primary)
-                                            .lineLimit(2)
-                                            .multilineTextAlignment(.leading)
-                                            .fixedSize(horizontal: false, vertical: true)
-                                            .frame(maxWidth: 160)
-                                            .padding()
-                                            .background(Color(UIColor.secondarySystemBackground))
-                                            .cornerRadius(16)
-                                    }
-                                }
-                            }
-                            .padding()
+                        SuggestionsView(suggestions: predefinedOptions) { messageData in
+                            sendMessage(messageData)
                         }
-                        .frame(height: 100)
                     }
                     .onChange(of: viewModel.text) { oldValue, newValue in
                         // already create the channel for faster reply.
