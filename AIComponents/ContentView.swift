@@ -26,6 +26,7 @@ struct ContentView: View {
     @StateObject var viewModel: ComposerViewModel
     @State var clientToolRegistry: ClientToolRegistry
     @State var typingIndicatorHandler: TypingIndicatorHandler
+    @State private var draftChannelId: ChannelId?
     
     //TODO: extract this.
     let predefinedOptions = ["Create a painting in Renaissance-style", "Create a workout plan for resistance training", "Find the decade that a photo is from", "Help me study vocabulary for an exam", "Tell me the best stocks to invest"]
@@ -49,7 +50,10 @@ struct ContentView: View {
                 isOpen: $isSplitOpen,
                 excludedBottomHeight: composerHeight,
                 menu: {
-                    SplitSidebarView(onChannelSelected: handleChannelSelection)
+                    SplitSidebarView(
+                        onChannelSelected: handleChannelSelection,
+                        onNewChat: handleNewChatRequest
+                    )
                 },
                 content: {
                     mainConversation()
@@ -136,6 +140,11 @@ struct ContentView: View {
         }
     }
     
+    private func setActiveChannelController(_ controller: ChatChannelController?) {
+        channelController = controller
+        typingIndicatorHandler.channelId = controller?.cid
+    }
+    
     private func sendMessage(_ messageData: MessageData) {
         let attachments = messageData.attachments.compactMap { url in
             try? AnyAttachmentPayload(localFileURL: url, attachmentType: .image)
@@ -143,6 +152,9 @@ struct ContentView: View {
         setupChannel {
             channelController?.createNewMessage(text: messageData.text, attachments: attachments)
             showMessageList = true
+            if channelController?.cid == draftChannelId {
+                draftChannelId = nil
+            }
             
             if channelController?.channel?.name == nil {
                 Task {
@@ -151,31 +163,61 @@ struct ContentView: View {
                 }
             }
         }
-        viewModel.text = ""
+        viewModel.cleanUpData()
     }
     
     private func setupChannel(completion: (() -> ())? = nil) {
         if channelController == nil {
             let id = UUID().uuidString
             let channelId = ChannelId(type: .messaging, id: id)
-            channelController = try? chatClient.channelController(
+            let controller = try? chatClient.channelController(
                 createChannelWithId: channelId
             )
-            setupAgent(for: channelController, completion: completion)
+            setActiveChannelController(controller)
+            setupAgent(for: controller, completion: completion)
         } else {
             completion?()
         }
     }
 
     private func handleChannelSelection(_ channel: ChatChannel) {
-        channelController = chatClient.channelController(for: channel.cid)
+        let controller = chatClient.channelController(for: channel.cid)
+        setActiveChannelController(controller)
         showMessageList = true
         setupAgent(for: channelController)
         withAnimation(.spring(response: 0.28, dampingFraction: 0.85)) {
             isSplitOpen = false
         }
     }
-    
+
+    private func handleNewChatRequest() {
+        if let existingDraftId = draftChannelId {
+            let draftController = chatClient.channelController(for: existingDraftId)
+            if draftController.channel?.latestMessages.isEmpty ?? true {
+                setActiveChannelController(draftController)
+                showMessageList = true
+                viewModel.cleanUpData()
+                withAnimation(.spring(response: 0.28, dampingFraction: 0.85)) {
+                    isSplitOpen = false
+                }
+                return
+            } else {
+                self.draftChannelId = nil
+            }
+        }
+
+        setActiveChannelController(nil)
+        viewModel.cleanUpData()
+        showMessageList = true
+        setupChannel()
+        if let newCid = channelController?.cid {
+            draftChannelId = newCid
+        }
+        withAnimation(.spring(response: 0.28, dampingFraction: 0.85)) {
+            isSplitOpen = false
+        }
+    }
+
     private func setupAgent(
         for channelController: ChatChannelController?,
         completion: (() -> ())? = nil
@@ -351,13 +393,15 @@ class CustomMessageResolver: MessageTypeResolving {
 private struct SplitSidebarView: View {
     
     let onChannelSelected: (ChatChannel) -> Void
+    let onNewChat: () -> Void
     @StateObject private var viewModel = ChatChannelListViewModel()
     
     var body: some View {
         VStack {
             ConversationListView(
                 viewModel: viewModel,
-                onChannelSelected: onChannelSelected
+                onChannelSelected: onChannelSelected,
+                onNewChat: onNewChat
             )
         }
         .padding(.top, 40)
@@ -368,6 +412,7 @@ struct ConversationListView: View {
     
     @ObservedObject var viewModel: ChatChannelListViewModel
     var onChannelSelected: (ChatChannel) -> Void
+    var onNewChat: () -> Void
     
     var body: some View {
         ScrollView {
@@ -377,6 +422,14 @@ struct ConversationListView: View {
                         .font(.headline)
                     
                     Spacer()
+
+                    Button(action: onNewChat) {
+                        Image(systemName: "plus.circle.fill")
+                            .font(.title3)
+                            .foregroundColor(.accentColor)
+                    }
+                    .accessibilityLabel("New chat")
+                    .buttonStyle(.plain)
                 }
                 .padding()
 
