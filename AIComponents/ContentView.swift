@@ -281,7 +281,7 @@ struct ContentView: View {
 }
 
 struct ConversationView: View {
-    @StateObject var viewModel: ChatChannelViewModel
+    @ObservedObject var viewModel: ChatChannelViewModel
     let typingIndicatorHandler: TypingIndicatorHandler
     
     var body: some View {
@@ -291,22 +291,8 @@ struct ConversationView: View {
                     typingIndicatorHandler: typingIndicatorHandler
                 ),
                 channel: channel,
-                messages: viewModel.messages,
-                messagesGroupingInfo: viewModel.messagesGroupingInfo,
-                scrolledId: $viewModel.scrolledId,
-                showScrollToLatestButton: $viewModel.showScrollToLatestButton,
-                quotedMessage: $viewModel.quotedMessage,
-                currentDateString: viewModel.currentDateString,
-                listId: viewModel.listId,
-                isMessageThread: viewModel.isMessageThread,
-                shouldShowTypingIndicator: viewModel.shouldShowTypingIndicator,
-                scrollPosition: $viewModel.scrollPosition,
-                loadingNextMessages: viewModel.loadingNextMessages,
-                firstUnreadMessageId: $viewModel.firstUnreadMessageId,
-                onMessageAppear: viewModel.handleMessageAppear(index:scrollDirection:),
-                onScrollToBottom: viewModel.scrollToLastMessage,
-                onLongPress: { displayInfo in },
-                onJumpToMessage: viewModel.jumpToMessage(messageId:)
+                viewModel: viewModel,
+                onLongPress: { _ in }
             )
         } else {
             ProgressView()
